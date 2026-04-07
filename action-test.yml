@@ -9,17 +9,25 @@ jobs:
     env:
       RUNNER_ARCH: X64
     steps:
-      - name: Checkout
+      - name: 🛎 Checkout
         uses: actions/checkout@v6
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: 🏗 oven-sh/setup-bun@v2
 
-      - name: Install dependencies
+      - name: 🧩 Install dependencies
         run: bun install
 
-      - name: Build action
+      - name: ⚒️ Build action
         run: bun run build
 
-      - name: Run local action
+      - name: 📦 Setup Sui CLI
+        uses: CommandOSSLabs/setup-sui-cli@v1
+        with:
+          network: testnet
+          private_key: ${{ secrets.SUI_DEPLOYER_PRIVATE_KEY }}
+
+      - name: 🚀 Deploy Contract
         uses: ./
+        with:
+          dir: example-contract
 

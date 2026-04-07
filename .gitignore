@@ -17,6 +17,7 @@ Thumbs.db
 # Environment
 .env
 .env.local
+.secrets
 
 # Testing
 coverage/
@@ -25,3 +26,6 @@ coverage/
 # Temporary
 tmp/
 temp/
+
+# Contract build artifacts
+example-contract/build/
