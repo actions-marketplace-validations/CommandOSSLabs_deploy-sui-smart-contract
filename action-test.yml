@@ -1,0 +1,25 @@
+name: Act Local Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-action:
+    runs-on: ubuntu-latest
+    env:
+      RUNNER_ARCH: X64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build action
+        run: bun run build
+
+      - name: Run local action
+        uses: ./
+

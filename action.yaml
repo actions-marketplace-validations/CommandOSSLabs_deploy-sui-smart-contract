@@ -1,0 +1,38 @@
+name: Deploy Sui Smart Contract
+description: Publish or upgrade a Sui Move smart contract.
+branding:
+  icon: upload-cloud
+  color: blue
+
+inputs:
+  dir:
+    description: Directory containing Move package files.
+    required: false
+    default: .
+  env:
+    description: Target Sui CLI environment alias (for example, testnet or mainnet).
+    required: false
+    default: testnet
+  rpc-url:
+    description: Optional RPC URL. Adds missing env, or uses an override alias only when env exists with a different RPC.
+    required: false
+  deploy-mode:
+    description: Deployment strategy (auto, force-publish, or safe-upgrade-only).
+    required: false
+    default: auto
+
+outputs:
+  digest:
+    description: Transaction digest.
+  upgrade-cap:
+    description: Upgrade capability object ID used for package upgrades.
+  published-package-id:
+    description: Package ID after publish or upgrade.
+  published-type:
+    description: Publish result type, either new or upgraded.
+  previous-package-id:
+    description: Empty for new publish; same as published-package-id for upgrade; previous package ID for force-upgrade.
+
+runs:
+  using: node24
+  main: dist/index.mjs
