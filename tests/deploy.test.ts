@@ -165,7 +165,15 @@ beforeEach(() => {
 
 describe('auto mode', () => {
   test('publishes new when no Published.toml exists', async () => {
-    mockReadPublishedToml.mockImplementation(async () => null)
+    let reads = 0
+    mockReadPublishedToml.mockImplementation(async () => {
+      reads += 1
+      if (reads === 1) return null
+      return makeTomlResult(
+        'testnet',
+        makeEntry({ originalId: '0xnew_original' })
+      )
+    })
 
     const result = await deploy(makeInputs({ deployMode: 'auto' }))
 
@@ -176,7 +184,8 @@ describe('auto mode', () => {
     expect(mockSuiPublish).toHaveBeenCalledTimes(1)
     expect(mockSuiUpgrade).not.toHaveBeenCalled()
     expect(result.publishedType).toBe('new')
-    expect(result.packageId).toBe('0xnew_package')
+    expect(result.packageId).toBe('0xnew_original')
+    expect(result.upgradeCap).toBe('0xcap_object')
     expect(result.previousPackageId).toBe('')
   })
 
@@ -192,6 +201,7 @@ describe('auto mode', () => {
     expect(mockSuiPublish).toHaveBeenCalledTimes(1)
     expect(mockSuiUpgrade).not.toHaveBeenCalled()
     expect(result.publishedType).toBe('new')
+    expect(result.upgradeCap).toBe('')
   })
 
   test('publishes new when entry exists but has no upgrade-capability', async () => {
@@ -224,7 +234,8 @@ describe('auto mode', () => {
     expect(mockSuiUpgrade).toHaveBeenCalledTimes(1)
     expect(mockSuiPublish).not.toHaveBeenCalled()
     expect(result.publishedType).toBe('upgraded')
-    expect(result.packageId).toBe('0xupgraded_package')
+    expect(result.packageId).toBe('0xoriginal')
+    expect(result.upgradeCap).toBe('0xcap_object')
     expect(result.previousPackageId).toBe('0xold_package')
   })
 
@@ -354,7 +365,8 @@ describe('safe-upgrade-only mode', () => {
     expect(mockSuiUpgrade).toHaveBeenCalledTimes(1)
     expect(mockSuiPublish).not.toHaveBeenCalled()
     expect(result.publishedType).toBe('upgraded')
-    expect(result.packageId).toBe('0xupgraded_package')
+    expect(result.packageId).toBe('0xoriginal')
+    expect(result.upgradeCap).toBe('0xcap_object')
   })
 
   test('throws when entry exists but has no upgrade-capability', async () => {

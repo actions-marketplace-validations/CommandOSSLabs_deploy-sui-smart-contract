@@ -18,11 +18,9 @@ import {
   validateSuiSetup,
 } from './sui-cli.ts'
 import type {
-  CreatedObjectChange,
   DeployResult,
   Inputs,
-  MutatedObjectChange,
-  PublishedObjectChange,
+  PublishedEntry,
   TxResponse,
 } from './types.ts'
 
@@ -130,10 +128,19 @@ export async function deploy(inputs: Inputs): Promise<DeployResult> {
     previousPackageId = existingEntry?.publishedAt ?? ''
   }
 
-  // 5. Parse transaction output
-  const result = parseTxResult(tx)
+  const { packageId, upgradeCap } = await resolvePublishedValues(
+    inputs.dir,
+    inputs.env,
+    existingEntry
+  )
 
-  return { ...result, publishedType, previousPackageId }
+  return {
+    digest: tx.digest,
+    packageId,
+    upgradeCap,
+    publishedType,
+    previousPackageId,
+  }
 }
 
 function isUpgradeCompatibilityError(error: unknown): boolean {
@@ -152,36 +159,35 @@ function isUpgradeCompatibilityError(error: unknown): boolean {
 
 // ─── Transaction parsing ───────────────────────────────────────────────────
 
-function parseTxResult(
-  tx: TxResponse
-): Omit<DeployResult, 'previousPackageId' | 'publishedType'> {
-  const published = tx.objectChanges.find(
-    (c): c is PublishedObjectChange => c.type === 'published'
-  )
-  if (!published) {
-    throw new Error('No published object change found in transaction response.')
+async function resolvePublishedValues(
+  dir: string,
+  env: string,
+  existingEntry: PublishedEntry | undefined
+): Promise<Pick<DeployResult, 'packageId' | 'upgradeCap'>> {
+  const sourceEntry =
+    existingEntry ?? (await readPublishedToml(dir))?.entries.get(env)
+
+  if (!sourceEntry) {
+    core.warning(
+      `Could not resolve original-id or upgrade-capability from Published.toml for environment "${env}".`
+    )
+    return { packageId: '', upgradeCap: '' }
   }
 
-  // UpgradeCap is "created" on first publish, "mutated" on upgrade
-  const upgradeCap = tx.objectChanges.find(
-    (c): c is CreatedObjectChange | MutatedObjectChange =>
-      (c.type === 'created' || c.type === 'mutated') &&
-      typeof (c as CreatedObjectChange).objectType === 'string' &&
-      (c as CreatedObjectChange).objectType.includes('UpgradeCap')
-  ) as (CreatedObjectChange | MutatedObjectChange) | undefined
-
-  if (!upgradeCap) {
-    // Non-fatal for force-publish of packages without UpgradeCap (unusual but allowed)
-    core.warning('No UpgradeCap object found in transaction response.')
+  if (!sourceEntry.originalId) {
+    core.warning(
+      `Could not resolve original-id from Published.toml for environment "${env}".`
+    )
   }
 
-  core.info(`Transaction digest : ${tx.digest}`)
-  core.info(`Package ID         : ${published.packageId}`)
-  if (upgradeCap) core.info(`UpgradeCap ID      : ${upgradeCap.objectId}`)
+  if (!sourceEntry.upgradeCapability) {
+    core.warning(
+      `Could not resolve upgrade-capability from Published.toml for environment "${env}".`
+    )
+  }
 
   return {
-    digest: tx.digest,
-    packageId: published.packageId,
-    upgradeCap: upgradeCap?.objectId ?? '',
+    packageId: sourceEntry.originalId ?? '',
+    upgradeCap: sourceEntry.upgradeCapability ?? '',
   }
 }
