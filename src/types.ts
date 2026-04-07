@@ -7,6 +7,8 @@ export interface Inputs {
   env: string
   /** Optional RPC URL override */
   rpcUrl?: string
+  /** Whether to verify dependency source code during publish/upgrade */
+  verifyDeps: boolean
   deployMode: DeployMode
 }
 

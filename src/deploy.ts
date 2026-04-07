@@ -73,15 +73,13 @@ export async function deploy(inputs: Inputs): Promise<DeployResult> {
       tx = await suiUpgrade(sui.path, {
         cwd: inputs.dir,
         upgradeCapId: existingEntry.upgradeCapability,
+        verifyDeps: inputs.verifyDeps,
       })
       publishedType = 'upgraded'
       previousPackageId = existingEntry.publishedAt
     } catch (error) {
       // In auto mode, compatibility failures should gracefully fallback to publish.
-      if (
-        inputs.deployMode === 'auto' &&
-        isUpgradeCompatibilityError(error)
-      ) {
+      if (inputs.deployMode === 'auto' && isUpgradeCompatibilityError(error)) {
         core.warning(
           'Upgrade failed due to compatibility constraints. Falling back to publish new package.'
         )
@@ -93,7 +91,10 @@ export async function deploy(inputs: Inputs): Promise<DeployResult> {
           )
         }
 
-        tx = await suiPublish(sui.path, { cwd: inputs.dir })
+        tx = await suiPublish(sui.path, {
+          cwd: inputs.dir,
+          verifyDeps: inputs.verifyDeps,
+        })
         publishedType = 'new'
         previousPackageId = existingEntry.publishedAt
       } else {
@@ -121,7 +122,10 @@ export async function deploy(inputs: Inputs): Promise<DeployResult> {
     }
 
     core.info('Publishing new package...')
-    tx = await suiPublish(sui.path, { cwd: inputs.dir })
+    tx = await suiPublish(sui.path, {
+      cwd: inputs.dir,
+      verifyDeps: inputs.verifyDeps,
+    })
     publishedType = 'new'
     previousPackageId = existingEntry?.publishedAt ?? ''
   }

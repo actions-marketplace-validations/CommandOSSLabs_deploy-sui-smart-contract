@@ -14,10 +14,12 @@ const mockValidateSuiSetup = mock(async () => ({
 const mockEnsureEnvAndSwitch = mock(async () => {})
 const mockSuiPublish = mock(async () => makePublishTx('0xnew_package'))
 const mockSuiUpgrade = mock(async () => makeUpgradeTx('0xupgraded_package'))
-const mockReadPublishedToml = mock(async (_dir: string) =>
-  null as ReturnType<typeof makeTomlResult> | null
+const mockReadPublishedToml = mock(
+  async (_dir: string) => null as ReturnType<typeof makeTomlResult> | null
 )
-const mockRemovePublishedEntry = mock(async (_dir: string, _env: string) => false)
+const mockRemovePublishedEntry = mock(
+  async (_dir: string, _env: string) => false
+)
 
 // ─── Module mocks ──────────────────────────────────────────────────────────
 
@@ -49,7 +51,10 @@ const { deploy } = await import('../src/deploy.ts')
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
-function makePublishTx(packageId: string, upgradeCapId = '0xcap_object'): TxResponse {
+function makePublishTx(
+  packageId: string,
+  upgradeCapId = '0xcap_object'
+): TxResponse {
   return {
     digest: '0xpublish_digest',
     effects: { status: { status: 'success' } },
@@ -73,7 +78,10 @@ function makePublishTx(packageId: string, upgradeCapId = '0xcap_object'): TxResp
   }
 }
 
-function makeUpgradeTx(packageId: string, upgradeCapId = '0xcap_object'): TxResponse {
+function makeUpgradeTx(
+  packageId: string,
+  upgradeCapId = '0xcap_object'
+): TxResponse {
   return {
     digest: '0xupgrade_digest',
     effects: { status: { status: 'success' } },
@@ -121,6 +129,7 @@ function makeInputs(overrides: Partial<Inputs> = {}): Inputs {
   return {
     dir: '/workspace/example-contract',
     env: 'testnet',
+    verifyDeps: false,
     deployMode: 'auto',
     ...overrides,
   }
@@ -145,7 +154,9 @@ beforeEach(() => {
   }))
   mockEnsureEnvAndSwitch.mockImplementation(async () => {})
   mockSuiPublish.mockImplementation(async () => makePublishTx('0xnew_package'))
-  mockSuiUpgrade.mockImplementation(async () => makeUpgradeTx('0xupgraded_package'))
+  mockSuiUpgrade.mockImplementation(async () =>
+    makeUpgradeTx('0xupgraded_package')
+  )
   mockReadPublishedToml.mockImplementation(async () => null)
   mockRemovePublishedEntry.mockImplementation(async () => false)
 })
@@ -158,6 +169,10 @@ describe('auto mode', () => {
 
     const result = await deploy(makeInputs({ deployMode: 'auto' }))
 
+    expect(mockSuiPublish).toHaveBeenCalledWith('/usr/bin/sui', {
+      cwd: '/workspace/example-contract',
+      verifyDeps: false,
+    })
     expect(mockSuiPublish).toHaveBeenCalledTimes(1)
     expect(mockSuiUpgrade).not.toHaveBeenCalled()
     expect(result.publishedType).toBe('new')
@@ -170,7 +185,9 @@ describe('auto mode', () => {
       makeTomlResult('mainnet', makeEntry())
     )
 
-    const result = await deploy(makeInputs({ deployMode: 'auto', env: 'testnet' }))
+    const result = await deploy(
+      makeInputs({ deployMode: 'auto', env: 'testnet' })
+    )
 
     expect(mockSuiPublish).toHaveBeenCalledTimes(1)
     expect(mockSuiUpgrade).not.toHaveBeenCalled()
@@ -191,11 +208,19 @@ describe('auto mode', () => {
 
   test('upgrades when entry with upgrade-capability exists', async () => {
     mockReadPublishedToml.mockImplementation(async () =>
-      makeTomlResult('testnet', makeEntry({ upgradeCapability: '0xcap_object' }))
+      makeTomlResult(
+        'testnet',
+        makeEntry({ upgradeCapability: '0xcap_object' })
+      )
     )
 
     const result = await deploy(makeInputs({ deployMode: 'auto' }))
 
+    expect(mockSuiUpgrade).toHaveBeenCalledWith('/usr/bin/sui', {
+      cwd: '/workspace/example-contract',
+      upgradeCapId: '0xcap_object',
+      verifyDeps: false,
+    })
     expect(mockSuiUpgrade).toHaveBeenCalledTimes(1)
     expect(mockSuiPublish).not.toHaveBeenCalled()
     expect(result.publishedType).toBe('upgraded')
@@ -203,12 +228,41 @@ describe('auto mode', () => {
     expect(result.previousPackageId).toBe('0xold_package')
   })
 
+  test('forwards verify-deps=true for publish and upgrade', async () => {
+    mockReadPublishedToml.mockImplementation(async () => null)
+    await deploy(makeInputs({ deployMode: 'auto', verifyDeps: true }))
+
+    expect(mockSuiPublish).toHaveBeenCalledWith('/usr/bin/sui', {
+      cwd: '/workspace/example-contract',
+      verifyDeps: true,
+    })
+
+    mockReadPublishedToml.mockImplementation(async () =>
+      makeTomlResult(
+        'testnet',
+        makeEntry({ upgradeCapability: '0xcap_object' })
+      )
+    )
+    await deploy(makeInputs({ deployMode: 'auto', verifyDeps: true }))
+
+    expect(mockSuiUpgrade).toHaveBeenCalledWith('/usr/bin/sui', {
+      cwd: '/workspace/example-contract',
+      upgradeCapId: '0xcap_object',
+      verifyDeps: true,
+    })
+  })
+
   test('falls back to publish when upgrade fails with compatibility error', async () => {
     mockReadPublishedToml.mockImplementation(async () =>
-      makeTomlResult('testnet', makeEntry({ upgradeCapability: '0xcap_object' }))
+      makeTomlResult(
+        'testnet',
+        makeEntry({ upgradeCapability: '0xcap_object' })
+      )
     )
     mockSuiUpgrade.mockImplementation(async () => {
-      throw new Error('Package upgrade is incompatible with the existing version')
+      throw new Error(
+        'Package upgrade is incompatible with the existing version'
+      )
     })
     mockRemovePublishedEntry.mockImplementation(async () => true)
 
@@ -223,13 +277,18 @@ describe('auto mode', () => {
 
   test('rethrows non-compatibility upgrade errors', async () => {
     mockReadPublishedToml.mockImplementation(async () =>
-      makeTomlResult('testnet', makeEntry({ upgradeCapability: '0xcap_object' }))
+      makeTomlResult(
+        'testnet',
+        makeEntry({ upgradeCapability: '0xcap_object' })
+      )
     )
     mockSuiUpgrade.mockImplementation(async () => {
       throw new Error('insufficient gas')
     })
 
-    await expect(deploy(makeInputs({ deployMode: 'auto' }))).rejects.toThrow('insufficient gas')
+    await expect(deploy(makeInputs({ deployMode: 'auto' }))).rejects.toThrow(
+      'insufficient gas'
+    )
     expect(mockSuiPublish).not.toHaveBeenCalled()
   })
 })
@@ -251,7 +310,10 @@ describe('force-publish mode', () => {
 
   test('removes existing entry and publishes new', async () => {
     mockReadPublishedToml.mockImplementation(async () =>
-      makeTomlResult('testnet', makeEntry({ upgradeCapability: '0xcap_object' }))
+      makeTomlResult(
+        'testnet',
+        makeEntry({ upgradeCapability: '0xcap_object' })
+      )
     )
     mockRemovePublishedEntry.mockImplementation(async () => true)
 
@@ -281,7 +343,10 @@ describe('safe-upgrade-only mode', () => {
 
   test('upgrades when entry with upgrade-capability exists', async () => {
     mockReadPublishedToml.mockImplementation(async () =>
-      makeTomlResult('testnet', makeEntry({ upgradeCapability: '0xcap_object' }))
+      makeTomlResult(
+        'testnet',
+        makeEntry({ upgradeCapability: '0xcap_object' })
+      )
     )
 
     const result = await deploy(makeInputs({ deployMode: 'safe-upgrade-only' }))
@@ -297,9 +362,9 @@ describe('safe-upgrade-only mode', () => {
       makeTomlResult('testnet', makeEntry({ upgradeCapability: '' }))
     )
 
-    await expect(deploy(makeInputs({ deployMode: 'safe-upgrade-only' }))).rejects.toThrow(
-      'safe-upgrade-only'
-    )
+    await expect(
+      deploy(makeInputs({ deployMode: 'safe-upgrade-only' }))
+    ).rejects.toThrow('safe-upgrade-only')
     expect(mockSuiPublish).not.toHaveBeenCalled()
     expect(mockSuiUpgrade).not.toHaveBeenCalled()
   })

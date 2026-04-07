@@ -7,6 +7,7 @@ async function run(): Promise<void> {
 
   core.info(`Deploying Sui package in: ${inputs.dir}`)
   core.info(`Environment : ${inputs.env}`)
+  core.info(`Verify deps : ${inputs.verifyDeps}`)
   core.info(`Deploy mode : ${inputs.deployMode}`)
 
   const result = await deploy(inputs)

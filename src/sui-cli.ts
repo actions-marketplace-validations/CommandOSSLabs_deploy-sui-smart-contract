@@ -62,8 +62,7 @@ export async function ensureEnvAndSwitch(
   env: string,
   rpcUrl?: string
 ): Promise<void> {
-  const effectiveRpcUrl =
-    rpcUrl ?? getDefaultRpcUrlForEnv(env)
+  const effectiveRpcUrl = rpcUrl ?? getDefaultRpcUrlForEnv(env)
 
   if (!rpcUrl) {
     core.info(
@@ -142,7 +141,7 @@ export async function ensureEnvAndSwitch(
       '--alias',
       overrideAlias,
       '--rpc',
-        effectiveRpcUrl,
+      effectiveRpcUrl,
     ])
   }
 
@@ -163,6 +162,7 @@ function getDefaultRpcUrlForEnv(env: string): string {
 export interface PublishOptions {
   cwd: string
   gasLimit?: number
+  verifyDeps?: boolean
 }
 
 export interface UpgradeOptions extends PublishOptions {
@@ -174,6 +174,7 @@ export async function suiPublish(
   opts: PublishOptions
 ): Promise<TxResponse> {
   const args = ['client', 'publish', '--json']
+  if (opts.verifyDeps) args.push('--verify-deps')
   if (opts.gasLimit) args.push('--gas-budget', String(opts.gasLimit))
   return runSuiJson(suiPath, args, opts.cwd)
 }
@@ -189,6 +190,7 @@ export async function suiUpgrade(
     opts.upgradeCapId,
     '--json',
   ]
+  if (opts.verifyDeps) args.push('--verify-deps')
   if (opts.gasLimit) args.push('--gas-budget', String(opts.gasLimit))
   return runSuiJson(suiPath, args, opts.cwd)
 }

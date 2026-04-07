@@ -16,6 +16,10 @@ inputs:
   rpc-url:
     description: Optional RPC URL override. If omitted, uses official endpoint by env (mainnet/testnet; fallback testnet), then adds/switches/overrides env as needed.
     required: false
+  verify-deps:
+    description: Whether to pass --verify-deps for publish/upgrade to verify dependency source code.
+    required: false
+    default: 'true'
   deploy-mode:
     description: Deployment strategy (auto, force-publish, or safe-upgrade-only).
     required: false

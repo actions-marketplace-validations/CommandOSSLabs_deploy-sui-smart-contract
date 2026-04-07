@@ -5,10 +5,13 @@ import { actionInputsSchema } from './schemas/inputs.ts'
 import type { Inputs } from './types.ts'
 
 export function parseInputs(): Inputs {
+  const verifyDepsInput = core.getInput('verify-deps') || 'true'
+
   const raw = {
     dir: core.getInput('dir') || '.',
     env: core.getInput('env') || 'testnet',
     rpcUrl: core.getInput('rpc-url') || undefined,
+    verifyDeps: verifyDepsInput.toLowerCase() === 'true',
     deployMode: (core.getInput('deploy-mode') ||
       'auto') as Inputs['deployMode'],
   }

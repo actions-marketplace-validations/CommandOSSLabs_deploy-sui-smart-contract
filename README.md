@@ -16,6 +16,7 @@ This action requires [`setup-sui-cli`](https://github.com/marketplace/actions/se
 | `dir`         | `.`       | Directory containing `Published.toml` and Move package files.                                   |
 | `env`         | `testnet` | Target Sui environment in the `Published.toml` file.                                            |
 | `rpc-url`     | -         | Optional RPC URL override. If omitted, uses the official endpoint for the selected environment. |
+| `verify-deps` | `true`    | Pass `--verify-deps` to Sui CLI publish/upgrade to verify dependency source code.               |
 | `deploy-mode` | `auto`    | Deployment strategy: `auto`, `force-publish`, or `safe-upgrade-only`.                           |
 
 ### RPC URL
